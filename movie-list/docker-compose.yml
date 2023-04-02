@@ -1,0 +1,58 @@
+version: "3"
+
+services: 
+  db:
+    image: postgres:latest
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: postgres
+    ports:
+      - "5432:5432"
+
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  migrations:
+    build: 
+      context: ./backend
+      dockerfile: Dockerfile.migrations
+    environment:
+      - DB_USERNAME=postgres
+      - DB_PASSWORD=postgres
+      - DB_DATABASE=postgres
+      - DB_HOST=db
+
+
+  frontend:
+    depends_on:
+      db:
+        condition: service_healthy
+    build: 
+      context: ./frontend/movie-list
+    environment:
+      - REACT_APP_BASE_URL=http://localhost:3001/
+    ports:
+      - "3000:3000"
+    restart: always
+    
+
+  backend:
+    depends_on:
+      db:
+        condition: service_healthy
+    build: 
+      context: ./backend
+    environment:
+      - DB_USERNAME=postgres
+      - DB_PASSWORD=postgres
+      - DB_DATABASE=postgres
+      - DB_HOST=db
+      - PORT=3001
+    restart: always
+    ports: 
+     - "3001:3001"
+
